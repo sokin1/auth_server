@@ -6,15 +6,13 @@ var client = new net.Socket()
 client.connect(1337, '127.0.0.1', () => {
     // const jsonData = {
     //     action: 'SIGN_UP',
-    //     username: 'sokin1@hotmail.com',
-    //     password: md5(encoder('password')),
-    //     re_password: md5(encoder('password'))
+    //     username: 'sokis1986@gmail.com',
+    //     password: md5(encoder('password2')),
+    //     re_password: md5(encoder('password2'))
     // }
 
     const jsonData = {
-        action: 'LOG_IN',
-        username: 'sokin1@hotmail.com',
-        password: md5(encoder('password'))
+        action: 'VALIDATE'
     }
 
     // write will encode data before send it to server
