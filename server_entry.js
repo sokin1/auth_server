@@ -1,5 +1,5 @@
 var net = require('net')
-import decoder from './Decoder'
+const Crypto = require('./Crypto.js')
 
 var admin = require('firebase-admin')
 var serviceAccount = require('./resource/userinfo-7f8f9-firebase-adminsdk-ophcs-42fb689ca1.json')
@@ -21,6 +21,7 @@ var server = net.createServer(socket => {
     })
 
     socket.on('data', data => {
+        console.log("on")
         var json_data = JSON.parse(decoder(data))
 
         if(json_data.action == 'SIGN_UP') {
@@ -48,6 +49,7 @@ var server = net.createServer(socket => {
         } else if(json_data.action == 'LOG_IN') {
             firebase.auth().signInWithEmailAndPassword(json_data.username, json_data.password)
             .then(user => {
+                console.log(user)
                 firebase.database().ref('users/sokin1').set({
                     logged_in: true
                 })
