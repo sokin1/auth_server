@@ -12,7 +12,7 @@ client.connect(1337, '127.0.0.1', () => {
     // }
 
     const jsonData = {
-        action: 'LOG_IN',
+        action: 'SIGN_UP_P1',
         username: 'sokin1@hotmail.com',
         password: md5(encoder('password'))
     }

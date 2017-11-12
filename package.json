@@ -9,12 +9,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "webpack": "^3.7.1",
     "atob": "^2.0.3",
     "btoa": "^1.1.2",
+    "firebase": "^4.6.2",
     "firebase-admin": "^5.2.1",
     "md5": "^2.2.1",
-    "net": "^1.0.2"
+    "net": "^1.0.2",
+    "uuid": "^3.1.0",
+    "webpack": "^3.7.1"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
