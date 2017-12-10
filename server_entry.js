@@ -26,10 +26,11 @@ var server = net.createServer(socket => {
 
     socket.on('data', data => {
         var json_data = JSON.parse(Crypto.decoder(data))
+        console.log('received', json_data)
 
-        if(json_data.Action == 'SIGN_UP_P1') {
+        if(json_data.action === 'SIGN_UP_P1') {
             console.log(JSON.stringify(json_data))
-            firebase.auth().createUserWithEmailAndPassword(json_data.Username, json_data.Password)
+            firebase.auth().createUserWithEmailAndPassword(json_data.username, json_data.password)
             .then(userRecord => {
                 firebase.database().ref('users/').set({
                     email: userRecord.email,
@@ -59,7 +60,7 @@ var server = net.createServer(socket => {
                     Cause: e
                 }))
             })
-        } else if(json_data.Action == 'SIGN_UP_P2') {
+        } else if(json_data.action == 'SIGN_UP_P2') {
             firebase.auth().currentUser.displayName = json_data.displayName
             firebase.auth().currentUser.phoneNumber = json_data.phoneNumber
             firebase.auth().currentUser.photoURL = json_data.photoURL
