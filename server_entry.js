@@ -15,10 +15,6 @@ firebase.initializeApp(config);
 
 var UUID = require('uuid/v1')
 
-function connect_to_db() {
-    // Connect to user-db
-}
-
 var server = net.createServer(socket => {
     socket.on('end', () => {
         console.log('client disconnected')
@@ -28,47 +24,56 @@ var server = net.createServer(socket => {
         var json_data = JSON.parse(Crypto.decoder(data))
         console.log('received', json_data)
 
-        if(json_data.action === 'SIGN_UP_P1') {
+        if(json_data.action === 'SIGN_UP') {
             console.log(JSON.stringify(json_data))
-            firebase.auth().createUserWithEmailAndPassword(json_data.username, json_data.password)
-            .then(userRecord => {
-                firebase.database().ref('users/').set({
-                    email: userRecord.email,
-                    emailVerified: userRecord.emailVerified,
-                    gid: []
-                }).then(() => {
-                    userRecord.sendEmailVerification()
-                    .then(() => {
-                        socket.write(JSON.stringify({
-                            Action: 'SIGN_UP_P1',
-                            Result: true
-                        }))
-                    })
-                    .catch(e => {
-                        socket.write(JSON.stringify({
-                            Action: 'SIGN_UP_P1',
-                            Result: false,
-                            Cause: 'Sending email verification failed'
-                        }))
+            if(!checkPasswordValidity(json_data.password, json_data.confirm_password)) {
+                socket.write(JSON.stringify({
+                    Action: 'SIGN_UP',
+                    Result: false,
+                    Reason: 'Password is not matched with confirm_password'
+                }))
+            } else {
+                firebase.auth().createUserWithEmailAndPassword(json_data.email, json_data.password)
+                .then(userRecord => {
+                    firebase.database().ref('users/').set({
+                        uname: '',
+                        email: userRecord.email,
+                        emailVerified: userRecord.emailVerified,
+                        createdAt: (new Date()).getMilliseconds().toString(),
+                        lastLogIn: undefined,
+                        gid: [],
+                        lastGroup: undefined,
+                    }).then(() => {
+                        userRecord.sendEmailVerification()
+                        .then(() => {
+                            socket.write(JSON.stringify({
+                                Action: 'SIGN_UP',
+                                Result: true,
+                                MetaData: userRecord.metadata
+                            }))
+                        })
+                        .catch(e => {
+                            socket.write(JSON.stringify({
+                                Action: 'SIGN_UP',
+                                Result: false,
+                                Reason: 'Sending email verification failed'
+                            }))
+                        })
                     })
                 })
-            })
-            .catch(e => {
-                socket.write(JSON.stringify({
-                    Action: 'SIGN_UP_P1',
-                    Result: false,
-                    Cause: e
-                }))
-            })
-        } else if(json_data.action == 'SIGN_UP_P2') {
-            firebase.auth().currentUser.displayName = json_data.displayName
-            firebase.auth().currentUser.phoneNumber = json_data.phoneNumber
-            firebase.auth().currentUser.photoURL = json_data.photoURL
+                .catch(e => {
+                    socket.write(JSON.stringify({
+                        Action: 'SIGN_UP',
+                        Result: false,
+                        Reason: e
+                    }))
+                })
+            }
         } else if(json_data.action == 'LOG_IN') {
-            defaultApp.auth().signInWithEmailAndPassword(json_data.username, json_data.password)
+            defaultApp.auth().signInWithEmailAndPassword(json_data.email, json_data.password)
             .then(user => {
                 console.log(user)
-                firebase.database().ref('users/sokin1').set({
+                firebase.database().ref('users/' + json_data.email).set({
                     logged_in: true
                 })
                 .then(onResolve => {
@@ -87,10 +92,6 @@ var server = net.createServer(socket => {
                 var errorMessage = e.message
 
                 console.log(errorCode, errorMessage)
-            })
-        } else if(json_data.Action == 'LOG_OUT') {
-            defaultApp.auth().signOut().then(onResolve => {
-
             })
         } else if(json_data.Action == 'VALIDATE') {
             var user = firebase.auth().currentUser

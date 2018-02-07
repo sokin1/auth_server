@@ -1,0 +1,14 @@
+For each user,
+
+    uname: username(no username on signup)
+    email: encrypted and email
+    password: encrypted and md5 password
+    createdAt: sign up date
+    lastLogIn: last time user logged in
+    gid([]): list of groups user is currently in
+    lastGroup: last group visited
+    (Only for Sign Up)emailVerified: email verified or not
+    (Only for Sign Up)email_verify_id: email verification id
+    (TBD)profile image: image file name
+    (TBD)profile text: profile text
+    (TBD)userLoggedIn: check user logged in
