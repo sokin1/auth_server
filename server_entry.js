@@ -78,7 +78,8 @@ var server = net.createServer(socket => {
                     }))
                 })
             }
-        } else if(json_data.action == 'LOG_IN') {
+        } else if(json_data.action === 'LOG_IN') {
+            console.log(json_data.email, json_data.password)
             firebase.auth().signInWithEmailAndPassword(json_data.email, json_data.password)
             .then(user => {
                 if(!user.emailVerified) {
@@ -90,20 +91,16 @@ var server = net.createServer(socket => {
                 } else {
                     firebase.database().ref('users/' + md5(json_data.email)).update({
                         logged_in: true,
-                        lastLogIn: user.metadata.lastSignInTime,
                         emailVerified: 'Verified'
                     })
                     .then(onResolve => {
-                        firebase.database().ref('users/' + md5(json_data.email)).once('value').then(user => {
-                            console.log('user After Log In', user.val())
-                            var resp_data = {
-                                email: user.email,
-                                gid: user.gid,
-                                lastGroup: user.lastGroup
-                            }
-            
-                            socket.write(JSON.stringify(resp_data))
-                        })
+                        console.log('user After Log In', user.val())
+                        var resp_data = {
+                            email: json_data.email,
+                            fb_config: config
+                        }
+        
+                        socket.write(JSON.stringify(resp_data))
                     })
                 }
             })
