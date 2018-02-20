@@ -104,8 +104,6 @@ var server = net.createServer(socket => {
             
                             socket.write(JSON.stringify(resp_data))
                         })
-
-                        ref = firebase.database().ref('users/' + md5(json_data.email))
                     })
                 }
             })
