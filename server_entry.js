@@ -1,6 +1,7 @@
 const net = require('net')
 const Crypto = require('./Crypto.js')
 const firebase = require('firebase')
+const md5 = require('md5')
 
 var config = {
     apiKey: "AIzaSyAp9WiJPvArikLgXJQmJg5Kn7OJ2hoDv60",
@@ -21,11 +22,14 @@ var server = net.createServer(socket => {
     })
 
     socket.on('data', data => {
+        function checkPasswordValidity(psw, psw_re) {
+            return psw === psw_re
+        }
+
         var json_data = JSON.parse(Crypto.decoder(data))
         console.log('received', json_data)
 
         if(json_data.action === 'SIGN_UP') {
-            console.log(JSON.stringify(json_data))
             if(!checkPasswordValidity(json_data.password, json_data.confirm_password)) {
                 socket.write(JSON.stringify({
                     Action: 'SIGN_UP',
@@ -35,17 +39,21 @@ var server = net.createServer(socket => {
             } else {
                 firebase.auth().createUserWithEmailAndPassword(json_data.email, json_data.password)
                 .then(userRecord => {
-                    firebase.database().ref('users/').set({
-                        uname: '',
+                    console.log('userRecord On Sign Up', userRecord)
+                    firebase.database().ref('users/' + md5(json_data.email)).set({
                         email: userRecord.email,
-                        emailVerified: userRecord.emailVerified,
-                        createdAt: (new Date()).getMilliseconds().toString(),
-                        lastLogIn: undefined,
+                        emailVerified: 'Not Sent',
+                        createdAt: userRecord.metadata.creationTime,
+                        lastLogIn: userRecord.metadata.lastSignInTime,
                         gid: [],
-                        lastGroup: undefined,
+                        lastGroup: '',
                     }).then(() => {
                         userRecord.sendEmailVerification()
                         .then(() => {
+                            firebase.database().ref('users/' + md5(json_data.email)).update({
+                                emailVerified: 'Sent'
+                            })
+
                             socket.write(JSON.stringify({
                                 Action: 'SIGN_UP',
                                 Result: true,
@@ -62,30 +70,44 @@ var server = net.createServer(socket => {
                     })
                 })
                 .catch(e => {
+                    console.log(e)
                     socket.write(JSON.stringify({
                         Action: 'SIGN_UP',
                         Result: false,
-                        Reason: e
+                        Reason: e.message
                     }))
                 })
             }
         } else if(json_data.action == 'LOG_IN') {
-            defaultApp.auth().signInWithEmailAndPassword(json_data.email, json_data.password)
+            firebase.auth().signInWithEmailAndPassword(json_data.email, json_data.password)
             .then(user => {
-                console.log(user)
-                firebase.database().ref('users/' + json_data.email).set({
-                    logged_in: true
-                })
-                .then(onResolve => {
-                    var resp_data = {
-                        email: user.email,
-                        name: user.displayName,
-                        photoUrl: user.photoURL,
-                        email_verified: user.emailVerified
-                    }
-    
-                    socket.write(JSON.stringify(resp_data))
-                })
+                if(!user.emailVerified) {
+                    socket.write(JSON.stringify({
+                        Action: 'LOG_IN',
+                        Result: false,
+                        Reason: 'Email Not Verified'
+                    }))
+                } else {
+                    firebase.database().ref('users/' + md5(json_data.email)).update({
+                        logged_in: true,
+                        lastLogIn: user.metadata.lastSignInTime,
+                        emailVerified: 'Verified'
+                    })
+                    .then(onResolve => {
+                        firebase.database().ref('users/' + md5(json_data.email)).once('value').then(user => {
+                            console.log('user After Log In', user.val())
+                            var resp_data = {
+                                email: user.email,
+                                gid: user.gid,
+                                lastGroup: user.lastGroup
+                            }
+            
+                            socket.write(JSON.stringify(resp_data))
+                        })
+
+                        ref = firebase.database().ref('users/' + md5(json_data.email))
+                    })
+                }
             })
             .catch(e => {
                 var errorCode = e.code
