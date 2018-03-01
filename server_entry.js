@@ -39,7 +39,6 @@ var server = net.createServer(socket => {
             } else {
                 firebase.auth().createUserWithEmailAndPassword(json_data.email, json_data.password)
                 .then(userRecord => {
-                    console.log('userRecord On Sign Up', userRecord)
                     firebase.database().ref('users/' + md5(json_data.email)).set({
                         email: userRecord.email,
                         emailVerified: 'Not Sent',
@@ -47,18 +46,17 @@ var server = net.createServer(socket => {
                         lastLogIn: userRecord.metadata.lastSignInTime,
                         gid: [],
                         lastGroup: '',
-                    }).then(() => {
+                    }).then(onResolve => {
                         userRecord.sendEmailVerification()
                         .then(() => {
                             firebase.database().ref('users/' + md5(json_data.email)).update({
                                 emailVerified: 'Sent'
+                            }).then(() => {
+                                socket.write(JSON.stringify({
+                                    Action: 'SIGN_UP',
+                                    Result: true
+                                }))
                             })
-
-                            socket.write(JSON.stringify({
-                                Action: 'SIGN_UP',
-                                Result: true,
-                                MetaData: userRecord.metadata
-                            }))
                         })
                         .catch(e => {
                             socket.write(JSON.stringify({
@@ -67,6 +65,8 @@ var server = net.createServer(socket => {
                                 Reason: 'Sending email verification failed'
                             }))
                         })
+                    }).catch(reason => {
+                        console.log('fail', reason)
                     })
                 })
                 .catch(e => {
@@ -89,16 +89,23 @@ var server = net.createServer(socket => {
                         Reason: 'Email Not Verified'
                     }))
                 } else {
+                    console.log(user.metadata)
                     firebase.database().ref('users/' + md5(json_data.email)).update({
                         logged_in: true,
-                        emailVerified: 'Verified'
+                        emailVerified: 'Verified',
+                        lastLogIn: user.metadata.lastSignInTime
                     })
                     .then(onResolve => {
-                        console.log('user After Log In', user.val())
                         var resp_data = {
-                            email: json_data.email,
-                            fb_config: config
+                            Action: 'LOG_IN',
+                            Result: true,
+                            Detail: {
+                                email: json_data.email,
+                                fb_config: config
+                            }
                         }
+
+                        console.log('logged in...')
         
                         socket.write(JSON.stringify(resp_data))
                     })
