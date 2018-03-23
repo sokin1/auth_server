@@ -89,7 +89,8 @@ var server = net.createServer(socket => {
                         Reason: 'Email Not Verified'
                     }))
                 } else {
-                    console.log(user.metadata)
+                    console.log('metadata: ', user.metadata)
+                    console.log('uid: ', user.uid)
                     firebase.database().ref('users/' + md5(json_data.email)).update({
                         logged_in: true,
                         emailVerified: 'Verified',
@@ -100,11 +101,13 @@ var server = net.createServer(socket => {
                             Action: 'LOG_IN',
                             Result: true,
                             Detail: {
-                                email: json_data.email,
-                                fb_config: config
+                                accCredential: Crypto.encrypt(json_data.email + '|' + json_data.password),
+                                fb_config: config,
+                                uid: uid,
+
                             }
                         }
-
+i
                         console.log('logged in...')
         
                         socket.write(JSON.stringify(resp_data))
