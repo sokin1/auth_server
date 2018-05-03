@@ -102,12 +102,9 @@ var server = net.createServer(socket => {
                             Result: true,
                             Detail: {
                                 accCredential: Crypto.encrypt(json_data.email + '|' + json_data.password),
-                                fb_config: config,
-                                uid: uid,
-
+                                fb_config: config
                             }
                         }
-i
                         console.log('logged in...')
         
                         socket.write(JSON.stringify(resp_data))
@@ -120,7 +117,38 @@ i
 
                 console.log(errorCode, errorMessage)
             })
-        } else if(json_data.Action == 'VALIDATE') {
+        } else if(json_data.Action === 'LOG_IN_WITH_CREDENTIAL') {
+            var credential = json_data.credential
+            var decryptedCredential = Crypto.decrypt(credential)
+            var usernamePassword = decryptedCredential.split('|')
+
+            firebase.auth().signInWithEmailAndPassword(usernamePassword[0], usernamePassword[1])
+            .then(user => {
+                console.log('metadata: ', user.metadata)
+                console.log('uid: ', user.uid)
+                firebase.database().ref('users/' + md5(usernamePassword[0])).update({
+                    logged_in: true,
+                    emailVerified: 'Verified',
+                    lastLogIn: user.metadata.lastSignInTime
+                })
+                .then(onResolve => {
+                    var resp_data = {
+                        Action: 'LOG_IN',
+                        Result: true
+                    }
+                    console.log('logged in...')
+    
+                    socket.write(JSON.stringify(resp_data))
+                })
+            })
+            .catch(e => {
+                var errorCode = e.code
+                var errorMessage = e.message
+
+                console.log(errorCode, errorMessage)
+            })
+
+        } else if(json_data.Action === 'VALIDATE') {
             var user = firebase.auth().currentUser
             socket.write(JSON.stringify(user))
         }
